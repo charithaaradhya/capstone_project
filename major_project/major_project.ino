@@ -1,3 +1,4 @@
+//#include <VariableTimedAction.h>
 #include "BluetoothSerial.h"
 //#include "string.h"
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
@@ -6,34 +7,23 @@
 
 BluetoothSerial SerialBT;
 
-int s1=0;//state of socket 1
-int s2=0;//state of socket 2
-const int sensorIn1 =34 ;//current senosr of socket 1 (analog pin of current sensor is connected to 34th pin esp32)
-const int sensorIn2=35;//current senosr of 2
-int mVperAmp = 185; // sensitivity of 5A current sensor 
-int Relay=23;//control pin to relay is connected to 23rd pin of esp32//socket 1
-int Relay2=22;//relay of socket 2
-double Vpp1 = 0;
-double Vpp2=0;
-double Vp1=0;
-double Vp2=0;
-double VRMS1 = 0;
-double VRMS2 = 0;
-double IRMS1 = 0;
-double IRMS2 = 0;
-double totalI=0;
-double input1=0,input2=0;//input by user
-unsigned long StartTime1,StartTime2;
-unsigned long CurrentTime;
-unsigned long ElapsedTime1,ElapsedTime2 ;
-double Watth1=0;
-double Watth2=0;
-
-double hours1=0;
-double hours2=0;
 char skt_byte=0;
 String skt_i="";
-
+int mVperAmp = 185;
+unsigned long StartTime[10];
+unsigned long ElapsedTime[10];
+unsigned long CurrentTime;
+int relay[]={23,22};
+int sensor[]={34,35};
+double Vpp[10];
+double Vp[10];
+int n=0;
+double IRMS[10];
+double VRMS[10];
+double Watth[10];
+double hours[10];
+int socket[10];
+int input[10];
 void setup() {
   Serial.begin(115200);
   pinMode(23,OUTPUT);
@@ -44,146 +34,145 @@ void setup() {
    other current sensor and relay
    */
    delay(1000);
-  digitalWrite(Relay,HIGH);
+  /*digitalWrite(Relay,HIGH);
   digitalWrite(Relay2,HIGH);
+  */
   SerialBT.begin("ESP32test"); //Bluetooth device name
   Serial.println("The device started, now you can pair it with bluetooth!");
+  Serial.println("enter the no of sockets:");
+  while (Serial.available() == 0) {
+    // Wait for User to Input Data
+  }
+  n = Serial.parseInt(); 
+Serial.print(n);
+
+for(int i=0;i<n;i++){
+  
+    socket[i]=0;
+    input[i]=0;
+    StartTime[i]=0;
+    ElapsedTime[i]=0;
+    Vpp[i]=0;
+    Vp[i]=0;
+    IRMS[i]=0;
+    VRMS[i]=0;
+     Watth[i]=0;
+    hours[i]=0;
+    digitalWrite(relay[i],HIGH);
+  
+  }
 }
 
-void loop() {
-  if (Serial.available()) {       
-    //from serial monitor to android BT terminal
-   SerialBT.write(Serial.read());
-  
-  }
 
-  check_for_input();
- 
-  turn_on_relay();
-  socket();
+
+void initialize(int x){
+  
+  
+    socket[x]=0;
+    input[x]=0;
+    StartTime[x]=0;
+    ElapsedTime[x]=0;
+    Vpp[x]=0;
+    Vp[x]=0;
+    IRMS[x]=0;
+    VRMS[x]=0;
+     Watth[x]=0;
+    hours[x]=0;
+    digitalWrite(relay[x],HIGH);
+  
+  
+  
   
   
 }
+void check_for_input()
+{ //takes for input from user, checks if socket is free , if free asks user to enter watt hours required. 
+  
+  Serial.println("enter the socket:");
+              
+              skt_byte=0;
+              skt_i="";
+              while(SerialBT.available()){
+                         skt_byte=SerialBT.read();
+                        //Serial.println(skt_byte);
+                         if(skt_byte !='\n'){
+                              skt_i += skt_byte;
+                         }
+                         }
+      Serial.println(skt_i);
+      if(skt_i=="a1bc")
+      {
+        if(socket[0]==0)
+        {
+          socket[0]=1;
+        Serial.println("enter the watt hours needed:");
+        while (SerialBT.available() == 0) {
+          // Wait for User to Input Data
+             }
+  
+         if (SerialBT.available()) {
+          char value=SerialBT.read();
+          String abc=String(value);
+          input[0]=abc.toInt();
+          Serial.print(input[0]);
+           Serial.println("Wh");
+            delay(20);
+            StartTime[0]= millis();
+         }
+      }
+      else
+      {
+        Serial.print("socket1 busy\n");
+        }
+      }
+        
+        else if(skt_i=="a2bc")
+      {
+
+        if(socket[1]==0){
+        socket[1]=1;
+        Serial.println("enter the watt hours needed:");
+       while (SerialBT.available() == 0) {
+          // Wait for User to Input Data
+          }
+  
+         if (SerialBT.available()) {
+         char value=SerialBT.read();
+          String abc=String(value);
+          input[1]=abc.toInt();
+          Serial.print(input[1]);
+            Serial.println("Wh");
+           delay(20);
+            StartTime[1] = millis();
+      }
+     
+      }
+      else
+      {
+        Serial.print("socket2 busy\n");
+        }
+
+      }
+}
 
 
- void turn_on_relay()
- {
-  //checks the state variable of socket and turns on the relay accordingly 
-  if(s1==1 and s2==0){
-    digitalWrite(Relay,LOW);
-      Serial.print("CHARGING......socket 1\n");
-      //StartTime1 = millis();
+void turn_on_relay()
+ {//checks the state variable of socket and turns on the relay accordingly 
+  
+ for(int j=0; j<n;j++){
+  if(socket[j]==1)
+  {
+    digitalWrite(relay[j],LOW);
+    Serial.printf("CHARGING......socket %d\n",j);
   }
-  else if(s1==0 and s2==1){
-    digitalWrite(Relay2,LOW);
-     Serial.print("CHARGING......socket 2\n");
-      //StartTime2 = millis();
-  }
-  else if(s1==1 and s2==1){
-    digitalWrite(Relay,LOW);
-    Serial.print("CHARGING......socket 1\n");
-    //StartTime1 = millis();
-    digitalWrite(Relay2,LOW);
-    Serial.print("CHARGING......socket 2\n");
-     //StartTime2 = millis();
-  }
-  else {
-    digitalWrite(Relay,HIGH);
-    digitalWrite(Relay2,HIGH);
+  else{
+     digitalWrite(relay[j],HIGH);
     }
+  }
+  } 
   
-  }
 
-
-void socket()
-{ //constantly checks if the supplied wh is less than or equal to wh required by user,cutts off when requirement is met.
-  //and also checks for user input constantly. 
-
-while(1){
-check_for_input();
-turn_on_relay();
-Vpp1= getVPP(sensorIn1);
-Vpp2= getVPP(sensorIn2);//to get proportional peak  voltage
-Vp1=Vpp1/2.0;
-Vp2=Vpp2/2.0;
-VRMS1 =Vp1*0.707; 
-VRMS2=Vp2*0.707;
-IRMS1=((VRMS1* 1000)/mVperAmp)-0.13;
-IRMS2 =((VRMS2* 1000)/mVperAmp)-0.13;
-CurrentTime = millis();
-
-ElapsedTime1 = CurrentTime - StartTime1;
-ElapsedTime2 = CurrentTime - StartTime2;
-
-hours1=ElapsedTime1/3600000.0;
-hours2=ElapsedTime2/3600000.0;
-
-if(s1==1){
-if(Watth1<input1){
-  totalI=IRMS1+totalI;
-  Serial.print("instantineous_current(socket1):");
-  Serial.print(IRMS1);
-  Serial.println("Amps");
-  Serial.print("Elapsed Time1:");
-  Serial.print(hours1,3);
-  Serial.println("hours");
-  /*Serial.print("total_current:");
-  Serial.print(totalI 2);
-  Serial.println("A");*/ 
-  Watth1=230*IRMS1*hours1;
-  Serial.print("watt_hours_socket1:");
-  Serial.print(Watth1);
-  Serial.println("Wh");  
-  Serial.print("\n");
-  }
-else{
-    digitalWrite(Relay,HIGH);
-    s1=0;//load off
-    Serial.print("Wh==");
-    Serial.print(Watth1);
-    Serial.println("Wh");
-    Serial.print("CHARGING COMPLETE......");
-    Serial.println("UNPLUG_socket1");
-    }
-}
-
-if(s2==1){    
-if(Watth2<input2){
-  totalI=IRMS2+totalI;
-  
-  Serial.print("instantineous_current(socket2)");
-  Serial.print(IRMS2);
-  Serial.println("Amps");
-  Serial.print("Elapsed Time2:");
-  Serial.print(hours2,3);
-  Serial.println("hours");
-  /*Serial.print("total_current:");
-  Serial.print(totalI);
-  Serial.println("A");*/ 
-  Watth2=230*IRMS2*hours2;
-  Serial.print("watt_hours_socket2:");
-  Serial.println(Watth2);
-  Serial.println("Wh");  
-  Serial.print("\n");
-  }
-else{
-    digitalWrite(Relay2,HIGH);
-    s2=0;//load off
-    Serial.print("Wh==");
-    Serial.print(Watth2);
-    Serial.println("Wh");
-    Serial.print("CHARGING COMPLETE......");
-    Serial.println("UNPLUG_socket2");
-    }
-}
-delay(1000);
-}
-}
-
-
-
-
-float getVPP(int sensorIn)
+  float getVPP(int sensorIn)
 {
   //returns peak to peak voltage 
 float result;
@@ -212,73 +201,79 @@ return result;
 
 }
 
-void check_for_input()
-{ //takes for input from user, checks if socket is free , if free asks user to enter watt hours required. 
   
-  Serial.println("enter the socket:");
-              
-              skt_byte=0;
-              skt_i="";
-              while(SerialBT.available()){
-                         skt_byte=SerialBT.read();
-                        //Serial.println(skt_byte);
-                         if(skt_byte !='\n'){
-                              skt_i += skt_byte;
-                         }
-                         }
-      Serial.println(skt_i);
-      if(skt_i=="a1bc")
-      {
-        if(s1==0)
-        {
-          s1=1;
-        Serial.println("enter the watt hours needed:");
-        while (SerialBT.available() == 0) {
-          // Wait for User to Input Data
-             }
-  
-         if (SerialBT.available()) {
-          char value=SerialBT.read();
-          String abc=String(value);
-          input1=abc.toInt();
-          Serial.print(input1);
-           Serial.println("Wh");
-            delay(20);
-            StartTime1 = millis();
-         }
-      }
-      else
-      {
-        Serial.print("socket1 busy\n");
-        }
-      }
-        
-        else if(skt_i=="a2bc")
-      {
+void Socket()
+{ //constantly checks if the supplied wh is less than or equal to wh required by user,cutts off when requirement is met.
+  //and also checks for user input constantly. 
 
-        if(s2==0){
-        s2=1;
-        Serial.println("enter the watt hours needed:");
-       while (SerialBT.available() == 0) {
-          // Wait for User to Input Data
-          }
-  
-         if (SerialBT.available()) {
-         char value=SerialBT.read();
-          String abc=String(value);
-          input2=abc.toInt();
-          Serial.print(input2);
-            Serial.println("Wh");
-           delay(20);
-            StartTime2 = millis();
-      }
-     
-      }
-      else
-      {
-        Serial.print("socket2 busy\n");
-        }
+while(1){
+check_for_input();
+turn_on_relay();
+for(int k =0;k<n;k++){
+  Vpp[k]=getVPP(sensor[k]);
+  Vp[k]=Vpp[k]/2.0;
+  VRMS[k]=Vp[k]*0.707;
+  IRMS[k]=((VRMS[k]* 1000)/mVperAmp)-0.13;
+  }
 
-      }
+//to get proportional peak  voltage
+CurrentTime = millis();
+for(int h=0;h<n;h++){
+  ElapsedTime[h] = CurrentTime - StartTime[h];
+  hours[h]=ElapsedTime[h]/3600000.0;
+  }
+for(int l=0;l<n;l++){
+if(socket[l]==1){
+    if(Watth[l]<input[l]){
+    //totalI=IRMS1+totalI;
+    Serial.printf("instantineous_current_socket%d:",l);
+    Serial.print(IRMS[l]);
+    Serial.println("Amps");
+    Serial.print("Elapsed Time1:");
+    Serial.print(hours[l],3);
+    Serial.println("hours");
+  /*Serial.print("total_current:");
+  Serial.print(totalI 2);
+  Serial.println("A");*/ 
+    Watth[l]=230*IRMS[l]*hours[l];
+    Serial.print("watt_hours_socket1:");
+    Serial.print(Watth[l]);
+    Serial.println("Wh");  
+    Serial.print("\n");
+     }
+  else{
+    digitalWrite(relay[l],HIGH);
+    socket[l]=0;//load off
+    Serial.print("Wh==");
+    Serial.print(Watth[l]);
+    Serial.println("Wh");
+    Serial.print("CHARGING COMPLETE......");
+    Serial.printf("UNPLUG_socket%d\n",l);
+    initialize(l);
+    }
 }
-      
+}
+
+delay(1000);
+}
+
+}
+
+//TimedAction numberThread = TimedAction(700,incrementNumber);
+//VariableTimedAction textThread = VariableTimedAction(2000,check_for_input);
+
+void loop() {
+  if (Serial.available()) {       
+    //from serial monitor to android BT terminal
+   SerialBT.write(Serial.read());
+  
+  }
+  
+
+  check_for_input();
+ 
+  turn_on_relay();
+  Socket();
+  
+  
+}
