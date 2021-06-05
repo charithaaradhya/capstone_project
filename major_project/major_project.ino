@@ -6,15 +6,16 @@
 #endif
 
 BluetoothSerial SerialBT;
-
+unsigned long previousTime_input=0;;
+long timeInterval= 1000;
 char skt_byte=0;
 String skt_i="";
 int mVperAmp = 185;
 unsigned long StartTime[10];
 unsigned long ElapsedTime[10];
 unsigned long CurrentTime;
-int relay[]={23,22};
-int sensor[]={34,35};
+int relay[]={23,22,21};
+int sensor[]={34,35,36};
 double Vpp[10];
 double Vp[10];
 int n=0;
@@ -30,6 +31,8 @@ void setup() {
   pinMode(34,INPUT);
   pinMode(22,OUTPUT);
   pinMode(35,INPUT);
+  pinMode(21,OUTPUT);
+   pinMode(36,INPUT);
   /*
    other current sensor and relay
    */
@@ -45,6 +48,7 @@ void setup() {
   }
   n = Serial.parseInt(); 
 Serial.print(n);
+Serial.println("\n");
 
 for(int i=0;i<n;i++){
   
@@ -87,24 +91,41 @@ void initialize(int x){
 }
 void check_for_input()
 { //takes for input from user, checks if socket is free , if free asks user to enter watt hours required. 
-  
+  int x;
   Serial.println("enter the socket:");
               
-              skt_byte=0;
-              skt_i="";
-              while(SerialBT.available()){
-                         skt_byte=SerialBT.read();
+              
+      skt_byte=0;
+      skt_i="";
+      while(SerialBT.available()){
+       skt_byte=SerialBT.read();
                         //Serial.println(skt_byte);
-                         if(skt_byte !='\n'){
-                              skt_i += skt_byte;
+          if(skt_byte !='\n'){
+               skt_i += skt_byte;
                          }
                          }
       Serial.println(skt_i);
-      if(skt_i=="a1bc")
-      {
-        if(socket[0]==0)
-        {
-          socket[0]=1;
+
+      
+      if(skt_i=="a1bc"){x=0;}
+      else if(skt_i=="a2bc"){x=1;}           
+      else if(skt_i=="a3bc"){x=2;}
+      else{x=100;}
+      user_input(x);
+      turn_on_relay(x);
+      
+      }
+         
+
+
+void user_input(int i){
+if(i==100){
+  return;
+  
+  }
+
+if(socket[i]==0){
+          socket[i]=1;
         Serial.println("enter the watt hours needed:");
         while (SerialBT.available() == 0) {
           // Wait for User to Input Data
@@ -113,63 +134,38 @@ void check_for_input()
          if (SerialBT.available()) {
           char value=SerialBT.read();
           String abc=String(value);
-          input[0]=abc.toInt();
-          Serial.print(input[0]);
+          input[i]=abc.toInt();
+          Serial.print(input[i]);
            Serial.println("Wh");
-            delay(20);
-            StartTime[0]= millis();
+            //delay(20);
+            StartTime[i]= millis();
          }
       }
-      else
-      {
-        Serial.print("socket1 busy\n");
-        }
-      }
-        
-        else if(skt_i=="a2bc")
-      {
+    else{
+      Serial.printf("socket %d busy\n", i);
+      }  
 
-        if(socket[1]==0){
-        socket[1]=1;
-        Serial.println("enter the watt hours needed:");
-       while (SerialBT.available() == 0) {
-          // Wait for User to Input Data
-          }
+
+      
+   
+    }
   
-         if (SerialBT.available()) {
-         char value=SerialBT.read();
-          String abc=String(value);
-          input[1]=abc.toInt();
-          Serial.print(input[1]);
-            Serial.println("Wh");
-           delay(20);
-            StartTime[1] = millis();
-      }
-     
-      }
-      else
-      {
-        Serial.print("socket2 busy\n");
-        }
 
-      }
-}
-
-
-void turn_on_relay()
+void turn_on_relay(int x)
  {//checks the state variable of socket and turns on the relay accordingly 
   
- for(int j=0; j<n;j++){
-  if(socket[j]==1)
+
+  if(socket[x]==1)
   {
-    digitalWrite(relay[j],LOW);
-    Serial.printf("CHARGING......socket %d\n",j);
+    digitalWrite(relay[x],LOW);
+    Serial.printf("CHARGING......socket %d\n",x);
   }
   else{
-     digitalWrite(relay[j],HIGH);
+     digitalWrite(relay[x],HIGH);
+     
     }
   }
-  } 
+   
   
 
   float getVPP(int sensorIn)
@@ -205,10 +201,14 @@ return result;
 void Socket()
 { //constantly checks if the supplied wh is less than or equal to wh required by user,cutts off when requirement is met.
   //and also checks for user input constantly. 
-
+ 
 while(1){
-check_for_input();
-turn_on_relay();
+ // task 1
+  if(millis()- previousTime_input> timeInterval) {
+    previousTime_input = millis();
+    check_for_input();
+  }
+
 for(int k =0;k<n;k++){
   Vpp[k]=getVPP(sensor[k]);
   Vp[k]=Vpp[k]/2.0;
@@ -219,7 +219,7 @@ for(int k =0;k<n;k++){
 //to get proportional peak  voltage
 CurrentTime = millis();
 for(int h=0;h<n;h++){
-  ElapsedTime[h] = CurrentTime - StartTime[h];
+  ElapsedTime[h] = CurrentTime-StartTime[h];
   hours[h]=ElapsedTime[h]/3600000.0;
   }
 for(int l=0;l<n;l++){
@@ -254,7 +254,6 @@ if(socket[l]==1){
 }
 }
 
-delay(1000);
 }
 
 }
@@ -271,8 +270,6 @@ void loop() {
   
 
   check_for_input();
- 
-  turn_on_relay();
   Socket();
   
   
