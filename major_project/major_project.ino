@@ -37,9 +37,7 @@ void setup() {
    other current sensor and relay
    */
    delay(1000);
-  /*digitalWrite(Relay,HIGH);
-  digitalWrite(Relay2,HIGH);
-  */
+ 
   SerialBT.begin("ESP32test"); //Bluetooth device name
   Serial.println("The device started, now you can pair it with bluetooth!");
   Serial.println("enter the no of sockets:");
@@ -199,15 +197,15 @@ while(1){
     previousTime_input = millis();
     check_for_input();
   }
-
+//task2
 for(int k =0;k<n;k++){
-  Vpp[k]=getVPP(sensor[k]);
+  Vpp[k]=getVPP(sensor[k]);//to get proportional peak  voltage
   Vp[k]=Vpp[k]/2.0;
   VRMS[k]=Vp[k]*0.707;
   IRMS[k]=((VRMS[k]* 1000)/mVperAmp)-0.13;
   }
 
-//to get proportional peak  voltage
+
 CurrentTime = millis();
 for(int h=0;h<n;h++){
   ElapsedTime[h] = CurrentTime-StartTime[h];
@@ -223,9 +221,7 @@ if(socket[l]==1){
     Serial.print("Elapsed Time1:");
     Serial.print(hours[l],3);
     Serial.println("hours");
-  /*Serial.print("total_current:");
-  Serial.print(totalI 2);
-  Serial.println("A");*/ 
+  
     Watth[l]=230*IRMS[l]*hours[l];
     Serial.print("watt_hours_socket1:");
     Serial.print(Watth[l]);
