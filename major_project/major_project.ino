@@ -7,7 +7,7 @@
 
 BluetoothSerial SerialBT;
 unsigned long previousTime_input=0;;
-long timeInterval= 1000;
+long timeInterval= 3000;
 char skt_byte=0;
 String skt_i="";
 int mVperAmp = 185;
@@ -46,7 +46,7 @@ void setup() {
   while (Serial.available() == 0) {
     // Wait for User to Input Data
   }
-  n = Serial.parseInt(); 
+n = Serial.parseInt(); 
 Serial.print(n);
 Serial.println("\n");
 
@@ -82,13 +82,9 @@ void initialize(int x){
     VRMS[x]=0;
      Watth[x]=0;
     hours[x]=0;
-    digitalWrite(relay[x],HIGH);
-  
-  
-  
-  
-  
+    digitalWrite(relay[x],HIGH);  
 }
+
 void check_for_input()
 { //takes for input from user, checks if socket is free , if free asks user to enter watt hours required. 
   int x;
@@ -115,8 +111,6 @@ void check_for_input()
       turn_on_relay(x);
       
       }
-         
-
 
 void user_input(int i){
 if(i==100){
@@ -144,9 +138,6 @@ if(socket[i]==0){
     else{
       Serial.printf("socket %d busy\n", i);
       }  
-
-
-      
    
     }
   
@@ -267,8 +258,6 @@ void loop() {
    SerialBT.write(Serial.read());
   
   }
-  
-
   check_for_input();
   Socket();
   
