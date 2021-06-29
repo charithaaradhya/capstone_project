@@ -1,6 +1,6 @@
 #include <LiquidCrystal_I2C.h>
 
-LiquidCrystal_I2C lcd(0x27,16,2);
+LiquidCrystal_I2C lcd(0x27,16,4);
 
 #include <Keypad.h>
 
@@ -42,6 +42,7 @@ double Watth[10];
 double hours[10];
 int socket[10];
 int input[10];
+String socket_id[]={"A1BC","A2BC","A3BC"};
 
 void initialize(int x){
     socket[x]=0;
@@ -99,9 +100,9 @@ int input_from_user()
   char key=0;
   skt_i="";
   double CT=0;
-  lcd.setCursor(0,2);
+  lcd.setCursor(0,3);
   lcd.print("ENTER THE SOCKET"); 
-  delay(1000);
+  delay(800);
   Serial.println(" enter the socket:");
   double ct=0;
   double st=millis();
@@ -173,13 +174,13 @@ if(socket[x]==0){
          //Serial.print("1\n");
          //if(ct>5000)break;
         }
-        if(ct>=5000){lcd.clear();lcd.home();lcd.print("TIME OUT FOR SOCKET ");lcd.print(x);delay(1000);}
+        if(ct>=5000){lcd.clear();lcd.home();lcd.print("TIME OUT FOR SOCKET ");lcd.print(socket_id[x]);delay(1000);}
            
         if(key){
            lcd.clear();
            lcd.home();
-           //ouble ct=0;
-           while(key!='#'){
+           double ct=0;
+           while((key!='#')and(ct<10000) ){
                if(key){            // append new character to input string
                     
                   if (key == '*') {
@@ -192,8 +193,9 @@ if(socket[x]==0){
                        }
                 }             
                  key = keypad.getKey();
-                 
+                 ct=millis()-st;
          }
+         if(ct>=10000){lcd.clear();lcd.home();lcd.print("TIME OUT FOR SOCKET ");lcd.print(socket_id[x]);delay(1000);}
         
          if (key == '#') {
                       if (inputString.length() > 0) {
@@ -206,7 +208,7 @@ if(socket[x]==0){
                           lcd.setCursor(0,1);
                           lcd.print(inputInt);
                           inputString = "";   
-                          delay(3000);// clear input
+                          delay(800);// clear input
                            // DO YOUR WORK HERE 
                           }
                       }
@@ -222,7 +224,7 @@ if(socket[x]==0){
   }
 
 else{
-      Serial.printf("socket %d busy\n", x);
+      Serial.printf("socket %d busy\n", socket_id[x]);
       lcd.clear();
       lcd.home();
       lcd.print("SOCKET BUSY! TRY OTHER SOCKET.");
@@ -242,7 +244,7 @@ if(x==-1){
            return -1;
   }
 else{
-           int price=0;
+           int price=input[x]*2;
            Serial.printf("total price would be %d\n",price); 
            lcd.clear();
            lcd.home();
@@ -265,6 +267,8 @@ else{
                 key = keypad.getKey();
                 ct=millis()-st;
               } 
+
+            Serial.print(key);  
               
             if(key=='1'){
               socket[x]=1;
@@ -272,21 +276,23 @@ else{
               
             }
             else
-           { return -1;
+           { 
              lcd.clear();
              lcd.home();
-             lcd.print("TIME OUT FOR SOCKET");
-             lcd.print(x);
-             delay(1000);}
+             lcd.print("TIME OUT FOR SOCKET:");
+             lcd.print(socket_id[x]);
+             delay(1000);
+             return -1;
+             }
          }
 }
     
 int authentication(int in){
    Serial.printf("\ndata sent for authentication (socket %d)\n",in);
    lcd.clear();
-   lcd.home();
+   lcd.home(); 
    lcd.print("data sent for authentication...");
-    delay(1000);
+    delay(800);
     /*send to owner*/
     //reply from owner
     SKT_FLAG[1]=1;
@@ -298,8 +304,8 @@ int authentication(int in){
     lcd.clear();
     lcd.home();
     lcd.print("permission granted for socket");
-    lcd.print(in);
-    delay(1000);
+    lcd.print(socket_id[in]);
+    delay(800);
     StartTime[in]= millis();
     turn_on_relay(in);
     }
@@ -308,7 +314,8 @@ int authentication(int in){
       lcd.clear();
       lcd.home();
       lcd.print("permission denied for socket");
-      lcd.print(in);
+      delay(800);
+      lcd.print(socket_id[in]);
       }
 
 
@@ -320,9 +327,12 @@ void turn_on_relay(int x)
   if(socket[x]==1)
   {
     digitalWrite(relay[x],LOW);
-    Serial.printf("CHARGING......socket %d\n",x);
+    Serial.printf("CHARGING......socket %d\n",socket_id[x]);
+     lcd.clear();
+      lcd.home();
     lcd.print("CHARGING>socket");
-    lcd.print(x);
+    lcd.print(socket_id[x]);
+    delay(800);
     // StartTime[x]= millis();
     
   }
@@ -379,16 +389,16 @@ return result;
             Serial.print("watt_hours_socket:");
             Serial.print(Watth[k]);
             Serial.println("Wh");  
-            Serial.print("PRICE::");
+         //   Serial.print("PRICE::");
             Serial.print("\n");
             lcd.clear();
             lcd.home();
             lcd.print("SOCKET:");
-            lcd.print(k);
+            lcd.print(socket_id[k]);
             lcd.setCursor(0,1);
             lcd.print("WATT_HRS:");
             lcd.print(Watth[k]);
-            delay(1000);
+            delay(800);
            }
       else{
             digitalWrite(relay[k],HIGH);
@@ -398,12 +408,13 @@ return result;
             Serial.print(Watth[k]);
             Serial.println("Wh");
             Serial.print("CHARGING COMPLETE......");
-            Serial.printf("UNPLUG_socket%d\n",k);
+            Serial.printf("UNPLUG_socket%s\n",socket_id[k]);
             //calculate final price
             lcd.clear();
             lcd.home();
             lcd.print("CHARGING COMPLETE......");
-            lcd.printf("UNPLUG_socket%d\n",k);
+            lcd.setCursor(0,1);
+            lcd.printf("UNPLUG_socket%s\n",socket_id[k]);
             delay(2000);
             initialize(k);
             }
