@@ -224,7 +224,7 @@ if(socket[x]==0){
   }
 
 else{
-      Serial.printf("socket %d busy\n", socket_id[x]);
+      Serial.printf("socket %d busy\n",x);
       lcd.clear();
       lcd.home();
       lcd.print("SOCKET BUSY! TRY OTHER SOCKET.");
@@ -327,7 +327,7 @@ void turn_on_relay(int x)
   if(socket[x]==1)
   {
     digitalWrite(relay[x],LOW);
-    Serial.printf("CHARGING......socket %d\n",socket_id[x]);
+    Serial.printf("CHARGING......socket %d\n",x);
      lcd.clear();
       lcd.home();
     lcd.print("CHARGING>socket");
@@ -373,7 +373,7 @@ return result;
       Vpp[k]=getVPP(sensor[k]);
       Vp[k]=Vpp[k]/2.0;
       VRMS[k]=Vp[k]*0.707;
-      IRMS[k]=((VRMS[k]* 1000)/mVperAmp)-0.15;
+      IRMS[k]=((VRMS[k]* 1000)/mVperAmp)-0.13;
       CurrentTime = millis();
       ElapsedTime[k] = CurrentTime-StartTime[k];
       hours[k]=ElapsedTime[k]/3600000.0;
